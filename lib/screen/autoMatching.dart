@@ -160,7 +160,7 @@ class _AutoMatchingPageState extends State<AutoMatchingPage> {
     var body = jsonEncode(requestMap);
 
     final response = await http.post(
-      Uri.parse('http://${Localhost.ip}:8080/api/waitingUsers/save'),
+      Uri.parse('http://${Localhost.ip}:8080/api/waitingUsers'),
       headers: {"Content-Type": "application/json"},
       body: body,
     );

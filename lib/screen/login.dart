@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 import 'package:ott_share/models/bankType.dart';
+import '../models/LoginResponse.dart';
 import '../models/localhost.dart';
 import '../models/loginStorage.dart';
 
@@ -68,6 +69,10 @@ class _LoginPageState extends State<LoginPage> {
 
       if (response.statusCode == 200) {
         final userInfoJson = jsonDecode(response.body);
+
+        // final loginResponse = jsonDecode(response.body);
+        // LoginResponse result = LoginResponse.fromJson(loginResponse);
+
         UserInfo userInfo = UserInfo.fromJson(userInfoJson);
         await LoginStorage.saveUserId(userInfo.userId); // 로그인 성공 시 사용자 ID 저장
 

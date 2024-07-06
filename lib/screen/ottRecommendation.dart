@@ -81,6 +81,9 @@ class _StartPageState extends State<StartPage> {
   bool isQuestionSelected = false;
   late int _selectedIndex;
   OttQuestionInfo? beforeResponseBody=null;
+  int netflix = 0;
+  int tving = 0;
+  int wavve = 0;
 
   late UserInfo? userInfo;
 
@@ -120,7 +123,7 @@ class _StartPageState extends State<StartPage> {
                     onPressed: () async {
                       if (pageCount == 1) {
                         buttonText = '다음';
-                        OttQuestionInfo? questionInfo = await sendGetFirstQuestionRequest();
+                        OttQuestionInfo? questionInfo = await sendGetQuestionRequest(pageCount);
                         print("첫번째 질문 정보 : ${questionInfo?.toJson()}");
                         beforeResponseBody = questionInfo;
                         setState(() => body = FirstQuestionPage(
@@ -144,7 +147,7 @@ class _StartPageState extends State<StartPage> {
                           // 선택된 상태인지 확인
                           if (pageCount == 10) {
                             buttonText = '자동매칭 시작';
-                            String? result = await sendGetResultRequest();
+                            String? result = await getResult();
                             setState(() {
                               body = ResultPage(
                                 key: UniqueKey(),
@@ -155,7 +158,10 @@ class _StartPageState extends State<StartPage> {
                             if (pageCount == 9) {
                               buttonText = '결과 확인';
                             }
-                            await sendCountOttScoreRequest(beforeResponseBody!);
+                            countOttScore(beforeResponseBody!);
+                            print("netflix= 점수 = ${netflix}");
+                            print("netflix= 점수 = ${tving}");
+                            print("netflix= 점수 = ${wavve}");
                             OttQuestionInfo? questionInfo = await sendGetQuestionRequest(pageCount);
                             beforeResponseBody = questionInfo;
                             setState(() {
@@ -225,35 +231,6 @@ class _StartPageState extends State<StartPage> {
     );
   }
 
-  Future<OttQuestionInfo?> sendGetFirstQuestionRequest() async {
-
-    try {
-
-      final response = await http.get(
-        Uri.parse('http://${Localhost.ip}:8080/api/ottRecQuestions/first'),
-        headers: {
-          'Accept-Encoding': 'utf-8',
-          'Content-Type': 'application/json; charset=UTF-8',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        // 성공 처리
-        final questionInfoJson = jsonDecode(response.body);
-        OttQuestionInfo responseBody = OttQuestionInfo.fromJson(questionInfoJson);
-        print('Success response: ${responseBody}'); // 성공 응답 본문 출력
-
-        return responseBody;
-      } else {
-        // 실패 처리
-        print('Failure response: ${response.body}'); // 실패 응답 본문 출력
-        return null;
-      }
-    } catch(error) {
-      print('catch Failure response: ${error}');
-    }
-
-  }
 
   Future<OttQuestionInfo?> sendGetQuestionRequest(int pageCount) async {
 
@@ -285,41 +262,41 @@ class _StartPageState extends State<StartPage> {
 
   }
 
-  Future<OttQuestionInfo?> sendCountOttScoreRequest(OttQuestionInfo questionInfo) async {
+  void countOttScore(OttQuestionInfo questionInfo) async {
 
-    Map<String, dynamic> requestMap = questionInfo.toJson();
-    requestMap.addAll({"isFirstQuestion" : isFirstQuestion});
-
-    print(requestMap);
-
-    await http.post(
-      Uri.parse('http://${Localhost.ip}:8080/api/ottRecQuestions/${pageCount}/score'),
-      headers: {
-        "Content-Encoding": "utf-8",
-        "Content-Type": "application/json"
-      },
-      body:  jsonEncode(requestMap),
-    );
-
-
+    if (isFirstQuestion == true) {
+      switch(questionInfo.firstQuestionOttType) {
+        case "NETFLIX":
+          netflix++;
+          break;
+        case "TVING":
+          tving++;
+          break;
+        case "WAVVE":
+          wavve++;
+          break;
+      }
+    } else {
+      switch(questionInfo.secondQuestionOttType) {
+        case "NETFLIX":
+          netflix++;
+          break;
+        case "TVING":
+          tving++;
+          break;
+        case "WAVVE":
+          wavve++;
+          break;
+      }
+    }
   }
 
-  Future<String?> sendGetResultRequest() async {
-    final response = await http.get(
-      Uri.parse('http://${Localhost.ip}:8080/api/ottRecQuestions/result'),
-      headers: {"Content-Encoding": "utf-8"},
-    );
+  Future<String> getResult() async {
 
-    if (response.statusCode == 200) {
-      // 성공 처리
-      String responseBody = jsonDecode(response.body);
-      print('Success response: ${responseBody}'); // 성공 응답 본문 출력
-
-      return responseBody;
+    if (tving > netflix) {
+      return wavve > tving ? "WAVVE" : "TVING";
     } else {
-      // 실패 처리
-      print('Failure response: ${response.body}'); // 실패 응답 본문 출력
-      return null;
+      return wavve > netflix ? "WAVVE" : "NETFLIX";
     }
 
   }
