@@ -18,6 +18,17 @@ class LoginStorage {
     await _prefs?.setInt('userId', userId);
   }
 
+
+  /// 사용자 ID 저장하기: 주어진 사용자 ID를 'userToken' 키에 저장합니다.
+  static Future<void> saveUserToken(String userToken) async {
+    await _prefs?.setString('userToken', userToken);
+  }
+
+  /// 사용자 ID 가져오기: SharedPreferences에서 'userId' 키로 저장된 사용자 ID를 반환합니다.
+  static Future<String?> getUserToken() async {
+    return _prefs?.getString('userToken');
+  }
+
   /// 로그아웃: 사용자 ID와 토큰을 SharedPreferences에서 삭제합니다.
   static Future<void> logout() async {
     await _prefs?.remove('userId');

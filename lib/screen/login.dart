@@ -47,7 +47,7 @@ class _LoginPageState extends State<LoginPage> {
 
     Map<String, String> data = {
       'username': username,
-      'password': password,
+      'password': password
     };
 
     print('아이디: $username');
@@ -63,20 +63,24 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       print("response.statusCode = ${response.statusCode}");
-      print("response.body = ${response.body}");
 
 
       if (response.statusCode == 200) {
-        final userInfoJson = jsonDecode(response.body);
+        // response 헤더의 'Authorization' 값(토큰) 가져오기
+        String? userToken = response.headers['authorization'];
+        print("authorizationHeader = ${userToken}");
+
+        // 가져온 토큰을 어디 저장하기
+        await LoginStorage.saveUserToken(userToken!); // 로그인 성공 시 token 저장
 
         // final loginResponse = jsonDecode(response.body);
         // LoginResponse result = LoginResponse.fromJson(loginResponse);
 
-        UserInfo userInfo = UserInfo.fromJson(userInfoJson);
-        await LoginStorage.saveUserId(userInfo.userId); // 로그인 성공 시 사용자 ID 저장
+        // UserInfo userInfo = UserInfo.fromJson(userInfoJson);
+        // await LoginStorage.saveUserId(userInfo.userId); // 로그인 성공 시 사용자 ID 저장
 
 
-        context.go("/home?isLoggedIn=true", extra: userInfo);
+        context.go("/home");
 
       } else {
         showDialog(
@@ -341,7 +345,7 @@ class _LoginPageState extends State<LoginPage> {
 
           await LoginStorage.saveUserId(userInfo.userId); // 로그인 성공 시 사용자 ID 저장
 
-          context.go("/home?isLoggedIn=true", extra: userInfo);
+          context.go("/home", extra: userInfo);
 
         } else {
           showDialog(
@@ -428,7 +432,7 @@ class _LoginPageState extends State<LoginPage> {
 
               await LoginStorage.saveUserId(userInfo.userId); // 로그인 성공 시 사용자 ID 저장
 
-              context.go("/home?isLoggedIn=true", extra: userInfo);
+              context.go("/home", extra: userInfo);
 
             } else {
               showDialog(
@@ -514,7 +518,7 @@ class _LoginPageState extends State<LoginPage> {
 
                 await LoginStorage.saveUserId(userInfo.userId); // 로그인 성공 시 사용자 ID 저장
 
-                context.go("/home?isLoggedIn=true", extra: userInfo);
+                context.go("/home", extra: userInfo);
 
               } else {
                 showDialog(
@@ -596,7 +600,7 @@ class _LoginPageState extends State<LoginPage> {
 
               await LoginStorage.saveUserId(userInfo.userId); // 로그인 성공 시 사용자 ID 저장
 
-              context.go("/home?isLoggedIn=true", extra: userInfo);
+              context.go("/home", extra: userInfo);
 
             } else {
               showDialog(

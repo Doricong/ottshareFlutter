@@ -1,11 +1,14 @@
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 import '../api/google_signin_api.dart';
 import '../models/localhost.dart';
+import '../models/loginStorage.dart';
 import '../models/userInfo.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
@@ -13,10 +16,9 @@ import 'package:http/http.dart' as http;
 
 
 class MyPage extends StatefulWidget {
-  final UserInfo? userInfo;
   final int? selectedIndex;
 
-  MyPage({Key? key, required this.userInfo, this.selectedIndex})
+  MyPage({Key? key, this.selectedIndex})
       : super(key: key);
 
   @override
@@ -24,12 +26,45 @@ class MyPage extends StatefulWidget {
 }
 
 class _MyPageState extends State<MyPage> {
-  late UserInfo? userInfo;
+  String? userToken;
+  UserInfo? userInfo;
+
 
   @override
   void initState() {
     super.initState();
-    userInfo = widget.userInfo;
+    _initialize();
+  }
+
+  Future<void> _initialize() async {
+    userToken = await LoginStorage.getUserToken();
+
+    Map<String, dynamic> decodedToken = JwtDecoder.decode(userToken!);
+    String username = decodedToken["sub"];
+    print("username = $username");
+
+    final String apiUrl = 'http://${Localhost.ip}:8080/api/users/10';
+
+    final response = await http.get(
+      Uri.parse(apiUrl),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+        'Authorization': '$userToken'
+      },
+    );
+
+    if (response.statusCode == 200) {
+      print(jsonDecode(response.body));
+      setState(() {
+        userInfo = UserInfo.fromJson(jsonDecode(response.body));
+      });
+      print("userInfo = ${userInfo?.nickname}");
+    } else {
+      setState(() {
+        userInfo = null;
+      });
+    }
+
   }
 
   final List<String> texts = [
@@ -51,7 +86,7 @@ class _MyPageState extends State<MyPage> {
 
   @override
   Widget build(BuildContext context) {
-    print   ('my page user info = ${userInfo}');
+    print('my page user info = ${userInfo}');
 
     late String text;
     late IconData icon;
@@ -81,7 +116,7 @@ class _MyPageState extends State<MyPage> {
                 Container(
                   alignment: Alignment.centerLeft,
                   height: 40,
-                  child: Text("${userInfo!.nickname}",
+                  child: Text("${userInfo?.nickname ?? 'Unknown'}",
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),),
                 ),
               ],
@@ -160,25 +195,32 @@ class _MyPageState extends State<MyPage> {
     //   print("로그아웃 실패");
     // }
 
-    final googleLoggedIn = await isGoogleLoggedIn();
-    final kakaoLoggedIn = await isKakaoLoggedIn();
+    // final googleLoggedIn = await isGoogleLoggedIn();
+    // final kakaoLoggedIn = await isKakaoLoggedIn();
+    final googleLoggedIn = false;
+    final kakaoLoggedIn = false;
 
     if (googleLoggedIn) {
       GoogleSignInApi.logout();
     } else if (kakaoLoggedIn) {
       UserApi.instance.logout();
     } else {
+      String? userToken = await LoginStorage.getUserToken();
+
       final String apiUrl = 'http://${Localhost.ip}:8080/api/users/logout';
 
       final response = await http.post(
         Uri.parse(apiUrl),
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': '$userToken'
         },
       );
 
       if (response.statusCode == 200) {
         print("로그아웃 성공");
+        LoginStorage.logout();
+
         // context.go("/home?isLoggedIn=true", extra: userInfo);
 
       } else {

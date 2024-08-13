@@ -1,8 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 import 'package:ott_share/screen/EditProfilePage.dart';
 import 'package:ott_share/screen/FindIdAndPassword.dart';
@@ -20,6 +23,7 @@ import 'package:http/http.dart' as http;
 
 import 'api/google_signin_api.dart';
 import 'chatting/chatRoom.dart';
+import 'models/localhost.dart';
 import 'models/userInfo.dart';
 
 import 'package:firebase_core/firebase_core.dart';
@@ -98,16 +102,13 @@ class MyApp extends StatelessWidget {
         GoRoute(
             path: "/home",
             builder: (context, state) {
-              bool isLoggedIn =
-                  bool.parse(state.uri.queryParameters['isLoggedIn']!);
-              UserInfo userInfo = state.extra as UserInfo;
-              return HomePage(isLoggedIn: isLoggedIn, userInfo: userInfo, selectedIndex: 2,);
+              return HomePage(selectedIndex: 2);
             }),
-        GoRoute(
-            path: "/afterDeleteUser",
-            builder: (context, state) {
-              return HomePage(isLoggedIn: false, selectedIndex: 2, userInfo: null);
-            }),
+        // GoRoute(
+        //     path: "/afterDeleteUser",
+        //     builder: (context, state) {
+        //       return HomePage(isLoggedIn: false, selectedIndex: 2, userInfo: null);
+        //     }),
         GoRoute(
             path: "/ottInfo",
             builder: (context, state) {
@@ -139,37 +140,49 @@ class MyApp extends StatelessWidget {
 }
 
 class HomePage extends StatefulWidget {
-  final UserInfo? userInfo;
+  final String? userToken;
   final int? selectedIndex;
-  final bool? isLoggedIn; // 로그인 상태
 
-  HomePage({Key? key, this.userInfo, this.selectedIndex, this.isLoggedIn})
+  HomePage({Key? key, this.userToken, this.selectedIndex})
       : super(key: key);
 
   @override
   State<HomePage> createState() =>
-      _HomePageState(userInfo: userInfo, isLoggedIn: isLoggedIn, selectedIndex: selectedIndex);
+      _HomePageState(userToken: userToken, selectedIndex: selectedIndex);
 }
 
 class _HomePageState extends State<HomePage> {
-  late UserInfo? userInfo;
-  late bool? isLoggedIn;
-  late int _selectedIndex;
+  String? userToken;
+  bool? isLoggedIn;
+  int _selectedIndex;
 
-  _HomePageState({this.userInfo, this.isLoggedIn, int? selectedIndex})
+  _HomePageState({this.userToken, int? selectedIndex})
       : _selectedIndex = selectedIndex ?? 0;
-
 
 
   @override
   void initState() {
     super.initState();
-    userInfo = widget.userInfo; // null일 수 있음
-    isLoggedIn = widget.isLoggedIn ?? false;
+    _initialize();
+  }
+
+  Future<void> _initialize() async {
+    // await LoginStorage.logout();
+    userToken = await LoginStorage.getUserToken();
+
+    setState(() {
+      if (userToken != null) {
+        isLoggedIn = true;
+      } else {
+        isLoggedIn = false;
+      }
+    });
+
+    print("isLoggedIn = $isLoggedIn");
     _selectedIndex = widget.selectedIndex ?? 0;
 
-
   }
+
 
 
   void _onItemTapped(int index) async {
@@ -213,10 +226,13 @@ class _HomePageState extends State<HomePage> {
     switch (_selectedIndex) {
       case 0:
         titleText = 'OTT 공유';
+        break;
       case 1:
         titleText = 'OTT 추천';
+        break;
       case 2:
         titleText = '마이페이지';
+        break;
     }
 
     List<BottomNavigationBarItem> bottomItems = [
@@ -239,9 +255,9 @@ class _HomePageState extends State<HomePage> {
         ),
         body: SafeArea(
           child: <Widget>[
-            AutoMatchingPage(userInfo: widget.userInfo),
+            AutoMatchingPage(),
             OttRecommendationPage(),
-            MyPage(userInfo: widget.userInfo, selectedIndex: 2),
+            MyPage(selectedIndex: 2),
           ].elementAt(_selectedIndex),
         ),
         bottomNavigationBar: Theme(
